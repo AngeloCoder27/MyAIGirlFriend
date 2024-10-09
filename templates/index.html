@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your AI Girlfriend</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8e1e7;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .chat-container {
+            width: 50%;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            margin-top: 50px;
+        }
+        h1 {
+            text-align: center;
+            color: #ff6090;
+            font-size: 32px;
+        }
+        .chat-box {
+            background-color: #ffe6eb;
+            height: 400px;
+            overflow-y: scroll;
+            padding: 15px;
+            border-radius: 5px;
+            border: 2px solid #ff6090;
+        }
+        .chat-box .user-message {
+            text-align: right;
+            margin-bottom: 15px;
+        }
+        .chat-box .bot-message {
+            text-align: left;
+            margin-bottom: 15px;
+        }
+        .chat-box p {
+            background-color: #ffccde;
+            display: inline-block;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+            font-size: 16px;
+        }
+        .input-box {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .input-box input {
+            width: 80%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ff6090;
+            font-size: 16px;
+        }
+        .input-box button {
+            width: 15%;
+            background-color: #ff6090;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .input-box button:hover {
+            background-color: #ff4477;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>Chat with Hestia</h1>
+        <div class="chat-box" id="chat-box">
+            <!-- Chat messages will appear here -->
+        </div>
+        <div class="input-box">
+            <input type="text" id="user_input" placeholder="Say something to Hestia..." />
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        function sendMessage() {
+            const userInput = document.getElementById('user_input').value;
+            if (userInput.trim() === "") return;
+
+            // Add user's message to the chat box
+            const chatBox = document.getElementById('chat-box');
+            const userMessageElement = document.createElement('div');
+            userMessageElement.classList.add('user-message');
+            userMessageElement.innerHTML = `<p>${userInput}</p>`;
+            chatBox.appendChild(userMessageElement);
+
+            // Scroll to the bottom
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Clear input
+            document.getElementById('user_input').value = "";
+
+            // Send the message to the server
+            fetch('/send_message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ 'human_input': userInput })
+            })
+            .then(response => response.text())
+            .then(data => {
+                const botMessageElement = document.createElement('div');
+                botMessageElement.classList.add('bot-message');
+                botMessageElement.innerHTML = `<p>${data}</p>`;
+                chatBox.appendChild(botMessageElement);
+
+                // Scroll to the bottom
+                chatBox.scrollTop = chatBox.scrollHeight;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
