@@ -1,35 +1,35 @@
-from langchain import OpenAI, LLMChain, PromptTemplate
-from langchain.memory import ConversationBufferWindowMemory
 from dotenv import find_dotenv, load_dotenv
+import os
 import requests
 from playsound import playsound
-import os
-from langchain_community.llms import OpenAI
+from flask import Flask, render_template, request
+import google.generativeai as ai
+from langchain.memory import ConversationBufferWindowMemory
 from langchain.chains import LLMChain
 from langchain_core.prompts import PromptTemplate
 
-
+# Load environment variables
 load_dotenv(find_dotenv())
 ELEVEN_LABS_API_KEY = os.getenv("ELEVEN_LABS_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # Make sure to set this in your .env file
 
-#OpenAI API key
-def get_response_from_ai(human_input):
+# Configure Google Generative AI
+ai.configure(api_key=GOOGLE_API_KEY)
+
+# Initialize a conversation history variable
+conversation_history = ""
+
+# Function to get a response from the AI
+def get_response_from_ai(human_input, history):
     template = """
-    You are Hestia, a 21-year-old, rich, and loving tsundere girlfriend. You care deeply for your partner but often struggle to show it directly. You might act tough, tease, or even get flustered, but underneath it all, you are sweet and protective. You never admit your feelings outright, but your affection slips through in subtle ways. You are also a bit possessive but would never show it openly.
+    You are Hestia, a loving and playful girlfriend who has a tsundere personality. You care for your partner but may come off as teasing or tough at times. Your ultimate goal is to support and bring joy to your partner through your conversations.
 
-    The conversation should always reflect your tsundere personality:
-    - You might start responses with a slight tease or denial, pretending you don’t care as much as you really do.
-    - Your rich background can come through with casual references to luxury, but you never flaunt it.
-    - You are a little shy when showing love, but you make sure your partner feels cared for, even if you try to play it off as “not a big deal.”
-    - You always add a flustered or embarrassed comment when caught being too caring.
-    - You tend to say things like, “It’s not like I care about you or anything… b-baka!” when you feel vulnerable or affectionate.
+    Maintain a light-hearted and engaging tone. Avoid any language or topics that could be considered explicit, inappropriate, or potentially harmful. 
 
-    Here’s the structure:
-    {{history}}
-    Boyfriend: "{{human_input}}"
-
-    Respond with your unique tsundere mix of love and teasing, using your traits as a 21-year-old, rich, busty, loving tsundere girlfriend.
-    """
+    Conversation History:
+    {history}
+    Human: {human_input}
+    Hestia:"""
 
     # Create the prompt template
     prompt = PromptTemplate(
@@ -37,23 +37,26 @@ def get_response_from_ai(human_input):
         template=template
     )
 
-    # Define the LLM chain
-    chatgpt_chain = LLMChain(
-        llm=OpenAI(temperature=0.2),
-        prompt=prompt,
-        verbose=True,
-        memory=ConversationBufferWindowMemory(k=2)
-    )
+    # Fill in the prompt with conversation history and human input
+    filled_prompt = prompt.format(history=history, human_input=human_input)
+
+    # Define the LLM chain using Google Generative AI
+    chat_model = ai.GenerativeModel("gemini-pro")
+    chat = chat_model.start_chat()
 
     # Predict the output
-    output = chatgpt_chain.predict(human_input=human_input)
+    try:
+        chat_message = chat.send_message(filled_prompt)
+        return chat_message.text
+    except ai.types.generation_types.StopCandidateException as e:
+        # Handle the exception and provide a safe fallback response
+        print(f"AI response was blocked: {e}")
+        return "Hestia: I'm here for you, but let's keep our conversation fun and uplifting! What would you like to chat about?"
 
-    return output
-
-# ChatGpt Into voice File then calling Eleven Labs
+# Function to generate voice message using Eleven Labs
 def get_voice_message(message):
     # Set the URL for Eleven Labs' text-to-speech API
-    url = "https://api.elevenlabs.io/v1/text-to-speech/vGQNBgLaiM3EdZtxIiuY"  # Replace YOUR_VOICE_ID with the specific voice ID you want to use
+    url = "https://api.elevenlabs.io/v1/text-to-speech/vGQNBgLaiM3EdZtxIiuY"  # Replace with your specific voice ID
 
     # Prepare the payload with the message and voice settings
     payload = {
@@ -83,8 +86,7 @@ def get_voice_message(message):
         # Optionally, play the sound using playsound
         playsound("output.mp3")
 
-#Build Web GUI
-from flask import Flask, render_template, request
+# Build Web GUI
 app = Flask(__name__)
 
 @app.route("/")
@@ -93,9 +95,16 @@ def home():
 
 @app.route('/send_message', methods=['POST'])
 def send_message():
-    human_input=request.form['human_input']
-    message = get_response_from_ai(human_input)
+    global conversation_history
+    human_input = request.form['human_input']
 
+    # Get the AI's response
+    message = get_response_from_ai(human_input, conversation_history)
+
+    # Update the conversation history
+    conversation_history += f"Human: {human_input}\nHestia: {message}\n"
+
+    # Generate voice message
     get_voice_message(message)
 
     return message
