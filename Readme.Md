@@ -1,7 +1,6 @@
-```markdown
 # AI Girlfriend Application
 
-This application serves as an interactive AI girlfriend named Hestia, designed to engage users in playful and caring conversations. Built with Flask and utilizing Google Generative AI, this application allows for text and voice interactions, creating a unique user experience.
+This application serves as an interactive AI girlfriend named Hestia, designed to engage users in playful and caring conversations. Built with Flask and utilizing Google Generative AI, this application allows for text and voice interactions using ElevenLabs, creating a unique user experience.
 
 ## Description
 
@@ -26,10 +25,6 @@ To run this application, you will need:
 ### Install Dependencies
 
 You can install the required packages using pip:
-
-```bash
-pip install Flask google-generativeai python-dotenv requests playsound
-```
 
 ## Getting Started
 
